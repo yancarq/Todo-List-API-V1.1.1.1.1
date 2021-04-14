@@ -41,7 +41,6 @@ def handle_hello():
 
 @app.route('/todos', methods=['GET'])
 def get_all_todo():
-    json_text = jsonify(todos)
     todo = Todo.query.all()
     all_todo = list(map(lambda x: x.serialize(),todo))
     return jsonify(all_todo), 200
@@ -63,7 +62,7 @@ def get_user_todo(user_id):
 def add_new_todo(user_id):
 
     request_body = request.get_json() 
-    if body is None:
+    if request_body is None:
         raise APIException("You need to specify the request body as a json object", status_code=400)
 
     label = request_body["label"]
@@ -93,15 +92,8 @@ def delete_todo(id_todo):
     else:
         db.session.delete(query)
         db.session.commit()
+        return ({"mensaje":'Tarea eliminada'}),200
     
-    #se retorna nuevamente la lista
-    query = User.query.get(user_id)
-    if query is None:
-        return('Tarea no agregada'),300
-    else:
-        result = Todo.query.filter_by(user_id= query.id)
-        todo_list = list(map(lambda x: x.serialize(), result))
-        return jsonify(todo_list), 200
 
 
 # this only runs if `$ python src/main.py` is executed
