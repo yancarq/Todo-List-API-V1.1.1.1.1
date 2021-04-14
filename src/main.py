@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User,Todo
 #from models import Person
 
 app = Flask(__name__)
@@ -40,29 +40,69 @@ def handle_hello():
     return jsonify(response_body), 200
 
 @app.route('/todos', methods=['GET'])
-def hello_world():
-    # supongamos que tienes cierta información (some_data) en una variable json
-
-    # puedes convertir esa variable en un string json así
+def get_all_todo():
     json_text = jsonify(todos)
+    todo = Todo.query.all()
+    all_todo = list(map(lambda x: x.serialize(),todo))
+    return jsonify(all_todo), 200
 
-    # y luego puedes retorarla (return) en el response body así:
-    return json_text
 
-@app.route('/todos', methods=['POST'])
-def add_new_todo():
-    request_body = request.data
-    decoded_object = json.loads(request_body)
+@app.route('/todos/<int:user_id>', methods=['GET'])
+def get_user_todo(user_id):
+
+    query = User.query.get(user_id)
+    if query is None:
+        return('El usuario no agregado')
+    else:
+        result = Todo.query.filter_by(user_id= query.id)
+        todo_list = list(map(lambda x: x.serialize(), result))
+        return jsonify(todo_list), 200
+
+
+@app.route('/todos/<int:user_id>', methods=['POST'])
+def add_new_todo(user_id):
+
+    request_body = request.get_json() 
+    if body is None:
+        raise APIException("You need to specify the request body as a json object", status_code=400)
+
+    label = request_body["label"]
+    done = request_body["done"]
+
+    todo = Todo(label=label,done = done,user_id = user_id) 
+    db.session.add(todo)
+    db.session.commit()
     
-    print("Incoming request with the following body", request_body)
-    todos.append(decoded_object)
-    return jsonify(todos)
+    #se retorna nuevamente la lista
+    query = User.query.get(user_id)
+    if query is None:
+        return('El usuario no agregado'),300
+    else:
+        result = Todo.query.filter_by(user_id= query.id)
+        todo_list = list(map(lambda x: x.serialize(), result))
+        return jsonify(todo_list), 200
 
-@app.route('/todos/<int:position>', methods=['DELETE'])
-def delete_todo(position):
-    print("This is the position to delete: ",position)
-    todos.pop(position)
-    return jsonify(todos)
+
+@app.route('/todos/<int:id_todo>', methods=['DELETE'])
+def delete_todo(id_todo):
+
+    query = Todo.query.get(id_todo)
+
+    if query is None:
+        return ({"mensaje":'La tarea no existe'}),300
+    else:
+        db.session.delete(query)
+        db.session.commit()
+    
+    #se retorna nuevamente la lista
+    query = User.query.get(user_id)
+    if query is None:
+        return('Tarea no agregada'),300
+    else:
+        result = Todo.query.filter_by(user_id= query.id)
+        todo_list = list(map(lambda x: x.serialize(), result))
+        return jsonify(todo_list), 200
+
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
